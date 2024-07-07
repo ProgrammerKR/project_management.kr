@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group input, .form-group button {
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .projects {
+            margin-top: 20px;
+        }
+        .project {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .project h2 {
+            margin-top: 0;
+        }
+        .tasks {
+            list-style-type: none;
+            padding: 0;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .task.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .task button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .task button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Project Management App</h1>
+        <div class="form-group">
+            <input type="text" id="projectName" placeholder="Enter project name">
+            <br><br>
+            <button onclick="addProject()">Add Project</button>
+        </div>
+        <div id="projects" class="projects"></div>
+    </div>
+
+    <script>
+        // Function to load projects from localStorage
+        function loadProjectsFromStorage() {
+            const projects = JSON.parse(localStorage.getItem('projects')) || [];
+            projects.forEach(project => {
+                const { id, name, tasks } = project;
+                const projectHTML = `
+                    <div class="project" id="project-${id}">
+                        <h2>${name}</h2>
+                        <div class="form-group">
+                            <input type="text" id="taskName-${id}" placeholder="Enter task name">
+                            <br><br>
+                            <button onclick="addTask(${id})">Add Task</button>
+                        </div>
+                        <ul id="taskList-${id}" class="tasks">
+                            ${tasks.map(task => `
+                                <li class="task ${task.completed ? 'completed' : ''}" id="task-${task.id}">
+                                    <span>${task.name}</span>
+                                    <button onclick="completeTask(${id}, ${task.id})">Complete</button>
+                                    <button onclick="deleteTask(${id}, ${task.id})">Delete</button>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                document.getElementById('projects').innerHTML += projectHTML;
+            });
+        }
+
+        // Function to save projects to localStorage
+        function saveProjectsToStorage() {
+            const projects = Array.from(document.querySelectorAll('.project')).map(project => {
+                const id = project.id.split('-')[1];
+                const name = project.querySelector('h2').textContent;
+                const tasks = Array.from(project.querySelectorAll('.task')).map(task => {
+                    const taskId = task.id.split('-')[1];
+                    return {
+                        id: parseInt(taskId),
+                        name: task.querySelector('span').textContent,
+                        completed: task.classList.contains('completed')
+                    };
+                });
+                return { id: parseInt(id), name, tasks };
+            });
+            localStorage.setItem('projects', JSON.stringify(projects));
+        }
+
+        // Function to add a new project
+        function addProject() {
+            const projectName = document.getElementById('projectName').value;
+            if (!projectName) {
+                alert('Please enter a project name.');
+                return;
+            }
+
+            const projectId = Date.now();
+            const projectHTML = `
+                <div class="project" id="project-${projectId}">
+                    <h2>${projectName}</h2>
+                    <div class="form-group">
+                        <input type="text" id="taskName-${projectId}" placeholder="Enter task name">
+                        <br><br>
+                        <button onclick="addTask(${projectId})">Add Task</button>
+                    </div>
+                    <ul id="taskList-${projectId}" class="tasks"></ul>
+                </div>
+            `;
+
+            document.getElementById('projects').innerHTML += projectHTML;
+            document.getElementById('projectName').value = '';
+
+            // Save projects to localStorage
+            saveProjectsToStorage();
+        }
+
+        // Function to add a task to a project
+        function addTask(projectId) {
+            const taskName = document.getElementById(`taskName-${projectId}`).value;
+            if (!taskName) {
+                alert('Please enter a task name.');
+                return;
+            }
+
+            const taskId = Date.now();
+            const taskHTML = `
+                <li class="task" id="task-${taskId}">
+                    <span>${taskName}</span>
+                    <button onclick="completeTask(${projectId}, ${taskId})">Complete</button>
+                    <button onclick="deleteTask(${projectId}, ${taskId})">Delete</button>
+                </li>
+            `;
+
+            document.getElementById(`taskList-${projectId}`).innerHTML += taskHTML;
+            document.getElementById(`taskName-${projectId}`).value = '';
+
+            // Save projects to localStorage after adding a task
+            saveProjectsToStorage();
+        }
+
+        // Function to mark a task as completed
+        function completeTask(projectId, taskId) {
+            const task = document.getElementById(`task-${taskId}`);
+            task.classList.toggle('completed');
+
+            // Save projects to localStorage after completing a task
+            saveProjectsToStorage();
+        }
+
+        // Function to delete a task from a project
+        function deleteTask(projectId, taskId) {
+            const task = document.getElementById(`task-${taskId}`);
+            task.remove();
+
+            // Save projects to localStorage after deleting a task
+            saveProjectsToStorage();
+        }
+
+        // Load existing projects from localStorage on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjectsFromStorage();
+        });
+    </script>
+
+</body>
+</html>
